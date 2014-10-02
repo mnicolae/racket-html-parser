@@ -2,7 +2,7 @@
 
 ***Write the names and CDF accounts for each of your group members below.***
 Mihai Nicolae, g1mihai
-<Name>, <CDF>
+David Eysman, c3eysman
 |#
 #lang racket
 (provide parse-html-tag make-text-parser
