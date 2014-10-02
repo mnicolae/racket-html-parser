@@ -12,7 +12,7 @@ Mihai Nicolae, g1mihai
 
 #|
 (parse-html-tag str)
-  If str starts with "<html>", returns a pair (list "<html>" rest), where
+  If str starts with "<html>", returns a pair (), where
   rest is the part of str after "<html>".
   Otherwise, returns (list 'error "hi"), signifying an error.
 
@@ -21,8 +21,8 @@ Mihai Nicolae, g1mihai
 > (parse-html-tag "<hey><html>")
 '(error "<hey><html>")
 |#
-(define (parse-html-tag str) (void))
-
+(define (parse-html-tag str)
+  ((make-text-parser "<html>") str))
 
 #|
 (make-text-parser t)
@@ -35,8 +35,26 @@ Mihai Nicolae, g1mihai
 > (parse-hi "goodbye hi")
 '(error "goodbye hi")
 |#
-(define (make-text-parser t) (void))
+(define (make-text-parser t)
+  (lambda (str)
+    (if (check-prefix str t)
+        (list t (substring str (string-length t))) ; TODO: think whether this should be a helper.
+        (error-handler str))))
 
+#|
+(define (check-prefix str pre)
+  Return true if str starts with pre. Otherwise return false.
+|#
+(define (check-prefix str pre)
+  (if (< (string-length str) (string-length pre)) #f
+      (if (string=? (substring str 0 (string-length pre)) pre) #t #f)))
+
+#|
+(define (error-handler str)
+  Error handler function that returns (list 'error str).
+|#
+(define (error-handler str)
+  (list 'error str))
 
 #|
 (parse-non-special-char str)

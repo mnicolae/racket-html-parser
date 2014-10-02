@@ -8,4 +8,18 @@ Mihai Nicolae, g1mihai
 (require "parsing.rkt")
 (require test-engine/racket-tests)
 
+#|
+parse-html-tag tests
+|#
+(check-expect (parse-html-tag "") '(error ""))
+(check-expect (parse-html-tag " ") '(error " "))
+(check-expect (parse-html-tag "<html></html>") '("<html>" "</html>"))
+(check-expect (parse-html-tag " <html></html>") '(error " <html></html>"))
+(check-expect (parse-html-tag "html></html>") '(error "html></html>"))
+
+#|
+TODO: make-text-parser tests
+|#
+
 ; TODO: WRITE TESTS!!
+(test)
