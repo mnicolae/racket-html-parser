@@ -86,7 +86,11 @@ David Eysman, c3eysman
 > ((either parse-plain-char parse-html-tag) "<xml>hello")
 '(error "<xml>hello")
 |#
-(define (either parser1 parser2) (void))
+(define (either parser1 parser2)
+  (lambda (str)
+    (if (equal? (first(parser1 str)) 'error)
+         (parser2 str)
+         (parser1 str))))
 
 
 #|
