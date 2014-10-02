@@ -2,7 +2,7 @@
 
 ***Write the names and CDF accounts for each of your group members below.***
 Mihai Nicolae, g1mihai
-<Name>, <CDF>
+David Eysman, c3eysman
 |#
 #lang racket
 (provide parse-html-tag make-text-parser
@@ -104,7 +104,11 @@ Mihai Nicolae, g1mihai
 > ((either parse-plain-char parse-html-tag) "<xml>hello")
 '(error "<xml>hello")
 |#
-(define (either parser1 parser2) (void))
+(define (either parser1 parser2)
+  (lambda (str)
+    (if (equal? (first(parser1 str)) 'error)
+         (parser2 str)
+         (parser1 str))))
 
 
 #|
