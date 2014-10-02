@@ -47,7 +47,11 @@ Mihai Nicolae, g1mihai
 > (parse-non-special-char "<html>")
 '(error "<html>")
 |#
-(define (parse-non-special-char str) (void))
+(define (parse-non-special-char str)
+  (define chr (string-ref str 0))
+  (if (or (equal? chr #\<) (equal? chr #\>) (equal? chr #\=) (equal? chr #\") (equal? chr #\/))
+      (list 'error str)
+      (list chr (substring str 1 (string-length str) ))))
 
 
 #|
@@ -59,7 +63,11 @@ Mihai Nicolae, g1mihai
 > (parse-plain-char " hello!")
 '(error " hello!")
 |#
-(define (parse-plain-char str) (void))
+(define (parse-plain-char str)
+  (define chr (string-ref str 0))
+  (if (or (equal? chr #\space) (equal? chr #\<) (equal? chr #\>) (equal? chr #\=) (equal? chr #\") (equal? chr #\/))
+      (list 'error str)
+      (list chr (substring str 1 (string-length str) ))))
 
 
 #| Parsing Combinators |#
