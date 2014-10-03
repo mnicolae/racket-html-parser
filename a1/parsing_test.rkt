@@ -20,6 +20,15 @@ parse-html-tag tests
 #|
 TODO: make-text-parser tests
 |#
+(check-expect ((either parse-plain-char parse-html-tag) "hello") '(#\h "ello"))
+
+#|
+|#
+(check-expect ((both parse-html-tag parse-plain-char) "<html>hello") '(("<html>" #\h) "ello"))
+(check-expect ((both parse-html-tag parse-plain-char) "<xml>hello") '(error "<xml>hello"))
+(check-expect ((both parse-html-tag parse-plain-char) "<html> hello") '(error "<html> hello"))
+
+
 
 ; TODO: WRITE TESTS!!
 (test)
