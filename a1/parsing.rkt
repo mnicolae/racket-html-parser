@@ -192,7 +192,16 @@ David Eysman, c3eysman
 > ((star parse-plain-char) "<html>hi")
 '(() "<html>hi")
 |#
-(define (star parser) (void))
+(define (star parser)
+  (lambda (str) (list (take ((rec-star parser) str) (- (length ((rec-star parser) str)) 1))
+                      (last ((rec-star parser) str)))))
+
+(define (rec-star parser)
+  (lambda (str) (if (equal? str "")
+                    (list str)
+                    (if (equal? (first (parser str)) 'error)
+                        (list str)
+                        (append (list(first (parser str)))
 
 #| HTML Parsing |#
 
