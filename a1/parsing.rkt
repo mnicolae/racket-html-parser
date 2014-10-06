@@ -207,7 +207,7 @@ David Eysman, c3eysman
                     (list str)
                     (if (equal? (first (parser str)) 'error)
                         (list str)
-                        (append (list(first (parser str)))
+                        (append (list(first (parser str))) ((rec-star parser) (first (rest (parser str)))))))))
 
 #| HTML Parsing |#
 
