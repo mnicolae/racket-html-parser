@@ -131,8 +131,17 @@ David Eysman, c3eysman
 > ((both parse-html-tag parse-plain-char) "<html> hello")
 '(error "<html> hello")
 |#
-(define (both parser1 parser2) (void))
-
+(define (both parser1 parser2)
+  (lambda (str)
+    (let* ([parsed1 (parser1 str)]
+      [parsed2 (parser2 (second parsed1))])
+      (if (equal? parsed1 (error-handler str))
+          (error-handler str)
+          (if (equal? parsed2 (error-handler parsed2))
+              (error-handler str)
+              (list (list (first parsed1) (first parsed2)) (second parsed2))))))) 
+          
+                  
 
 #|
 (star parser)
@@ -185,3 +194,10 @@ David Eysman, c3eysman
 '(error "<body><p>Not good</body></p>")
 |#
 (define (parse-html str) (void))
+
+(define let-ex-3
+  (let ([a 15])
+    (lambda (y)
+      (let ([b (+ a 5)]
+            [a 11])
+        (lambda (z) (+ (- z y) (- a b)))))))
