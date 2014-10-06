@@ -101,12 +101,30 @@ David Eysman, c3eysman
 (define (parse-plain-char str)
   ((make-char-parser '(#\space #\< #\> #\= #\ #\/)) str))
 
-#|
-(open-tag-parser str)
-|#
-;(define (open-tag-parser str)
-;  ((make-char-parser '(#\<)) str))
+(define (open-tag-parser str)
+  ((make-search-char-parser '(#\<)) str))
 
+(define (close-tag-parser str)
+  ((make-char-parser '(#\>)) str))
+
+(define (space-parser str)
+  (star ((make-char-parser '(#\space)) str)))
+
+(define (tag-text-parser str)
+  (foldr string-append "" (map string (first ((star close-tag-parser) str)))))
+
+#|
+(tag-parser str)
+|#
+;(define (tag-parser str)
+;  
+;  (list (tag-text-parser (second (open-tag-parser str)))))
+;  (let ([x (second ((make-search-char-parser '(#\<)) str))]) 
+;  (substring x 0 (- (string-length x) 1)))
+
+(define (attr-parser str)
+  (map (lambda (x) (string-split x "=")) (string-split str)))
+  
 #|
 (make-char-parser chr-lst)
   Return a parser that tries to read *one* occurrence of one char from 
@@ -125,6 +143,14 @@ David Eysman, c3eysman
     (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
         (list first-chr rest-chr)
         (error-handler str)))))
+
+(define (make-search-char-parser lst)
+  (lambda (str)
+    (let* ([first-chr (string-ref str 0)]
+          [rest-chr (substring str 1 (string-length str))])
+    (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
+        (error-handler str)
+        (list first-chr rest-chr)))))
 
 #| Parsing Combinators |#
 
