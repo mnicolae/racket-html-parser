@@ -101,29 +101,44 @@ David Eysman, c3eysman
 (define (parse-plain-char str)
   ((make-char-parser '(#\space #\< #\> #\= #\ #\/)) str))
 
+
 (define (open-tag-parser str)
   ((make-search-char-parser '(#\<)) str))
+
 
 (define (close-tag-parser str)
   ((make-char-parser '(#\>)) str))
 
+
 (define (space-parser str)
-  (star ((make-char-parser '(#\space)) str)))
+  ((star (make-char-parser '(#\space))) str))
+
 
 (define (tag-text-parser str)
   (foldr string-append "" (map string (first ((star close-tag-parser) str)))))
 
+
 #|
 (tag-parser str)
 |#
-;(define (tag-parser str)
-;  
+(define (tag-parser str)
+   (let* ([parsed (space-parser (tag-text-parser (second (open-tag-parser str))))]
+          
+     [inter (list (foldr string-append "" (map string (first parsed))) (attr-parser (first (rest parsed))))]
+     [inter-split (last (last (second inter)))]
+     [after (string-trim str inter-split #:right? #t)])
+     
+     (list after)))
+;     (list inter)))
+  
+
+                 
 ;  (list (tag-text-parser (second (open-tag-parser str)))))
 ;  (let ([x (second ((make-search-char-parser '(#\<)) str))]) 
 ;  (substring x 0 (- (string-length x) 1)))
 
 (define (attr-parser str)
-  (map (lambda (x) (string-split x "=")) (string-split str)))
+  (map (lambda (x) (string-split x "=")) (string-split (string-replace str "\"" ""))))
   
 #|
 (make-char-parser chr-lst)
@@ -263,3 +278,5 @@ David Eysman, c3eysman
 '(error "<body><p>Not good</body></p>")
 |#
 (define (parse-html str) (void))
+
+(tag-parser "<body id=\"main\" class=\"super\">Hello</body>")
