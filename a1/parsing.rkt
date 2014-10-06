@@ -38,11 +38,11 @@ David Eysman, c3eysman
 (define (make-text-parser t)
   (lambda (str)
     (if (check-prefix str t)
-        (list t (substring str (string-length t))) ; TODO: think whether this should be a helper.
+        (list t (strip-prefix str t))
         (error-handler str))))
 
 #|
-(define (check-prefix str pre)
+(check-prefix str pre)
   Return true if str starts with pre. Otherwise return false.
 |#
 (define (check-prefix str pre)
@@ -50,11 +50,32 @@ David Eysman, c3eysman
       (if (string=? (substring str 0 (string-length pre)) pre) #t #f)))
 
 #|
+(strip-prefix str pre)
+  Return substring of str with prefix pre removed.
+|#
+(define (strip-prefix str pre)
+  (substring str (string-length pre)))
+
+#|
 (define (error-handler str)
   Error handler function that returns (list 'error str).
 |#
 (define (error-handler str)
   (list 'error str))
+
+#|
+(parser-error? parser str)
+  Return true if parser can succesfully parse str. Otherwise return false.
+|#
+(define (parser-error? parser str)
+  (if (equal? (parser str) (error-handler str)) #t #f))
+
+#|
+(parsed-error? parser lst)
+  Return true if the first element of lst is 'error. Otherwise return false.
+|#
+(define (parsed-error? lst)
+  (if (equal? (list-ref lst 0) 'error) #t #f))
 
 #|
 (parse-non-special-char str)
@@ -66,11 +87,7 @@ David Eysman, c3eysman
 '(error "<html>")
 |#
 (define (parse-non-special-char str)
-  (define chr (string-ref str 0))
-  (if (or (equal? chr #\<) (equal? chr #\>) (equal? chr #\=) (equal? chr #\") (equal? chr #\/))
-      (list 'error str)
-      (list chr (substring str 1 (string-length str) ))))
-
+  ((make-char-parser '(#\< #\> #\= #\ #\/)) str))
 
 #|
 (parse-plain-char str)
@@ -82,11 +99,26 @@ David Eysman, c3eysman
 '(error " hello!")
 |#
 (define (parse-plain-char str)
-  (define chr (string-ref str 0))
-  (if (or (equal? chr #\space) (equal? chr #\<) (equal? chr #\>) (equal? chr #\=) (equal? chr #\") (equal? chr #\/))
-      (list 'error str)
-      (list chr (substring str 1 (string-length str) ))))
+  ((make-char-parser '(#\space #\< #\> #\= #\ #\/)) str))
 
+#|
+(make-char-parser chr-lst)
+  Return a parser that tries to read *one* occurrence of one char from 
+  chr-lst at the start of its input. chr-lst is a list of characters.
+
+> (define parse-abc (make-text-parser '(#\a #\b #\c)))
+> (parse-abc "abcde")
+'("#\a" "bcde")
+> (parse-hi "goodbye hi")
+'(error "goodbye hi")
+|#
+(define (make-char-parser lst)
+  (lambda (str)
+    (let* ([first-chr (string-ref str 0)]
+          [rest-chr (substring str 1 (string-length str))])
+    (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
+        (list first-chr rest-chr)
+        (error-handler str)))))
 
 #| Parsing Combinators |#
 
@@ -106,10 +138,9 @@ David Eysman, c3eysman
 |#
 (define (either parser1 parser2)
   (lambda (str)
-    (if (equal? (first(parser1 str)) 'error)
+    (if (parser-error? parser1 str)
          (parser2 str)
          (parser1 str))))
-
 
 #|
 (both parser1 parser2)
@@ -134,14 +165,12 @@ David Eysman, c3eysman
 (define (both parser1 parser2)
   (lambda (str)
     (let* ([parsed1 (parser1 str)]
-      [parsed2 (parser2 (second parsed1))])
-      (if (equal? parsed1 (error-handler str))
-          (error-handler str)
-          (if (equal? parsed2 (error-handler parsed2))
-              (error-handler str)
-              (list (list (first parsed1) (first parsed2)) (second parsed2))))))) 
-          
-                  
+           [parsed2 (parser2 (second parsed1))])
+    (if (parsed-error? parsed1)
+        (error-handler str)
+        (if (parsed-error? parsed2)
+            (error-handler str)
+            (list (list (first parsed1) (first parsed2)) (second parsed2)))))))
 
 #|
 (star parser)
@@ -164,7 +193,6 @@ David Eysman, c3eysman
 '(() "<html>hi")
 |#
 (define (star parser) (void))
-
 
 #| HTML Parsing |#
 
@@ -194,10 +222,3 @@ David Eysman, c3eysman
 '(error "<body><p>Not good</body></p>")
 |#
 (define (parse-html str) (void))
-
-(define let-ex-3
-  (let ([a 15])
-    (lambda (y)
-      (let ([b (+ a 5)]
-            [a 11])
-        (lambda (z) (+ (- z y) (- a b)))))))
