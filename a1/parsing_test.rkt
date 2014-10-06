@@ -8,11 +8,12 @@ David Eysman, c3eysman
 (require "parsing.rkt")
 (require test-engine/racket-tests)
 
-#|
-parse-html-tag tests
-|#
+#| parse-html-tag tests |#
+#| error tests |#
 (check-expect (parse-html-tag "") '(error ""))
 (check-expect (parse-html-tag " ") '(error " "))
+(check-expect (parse-html-tag " <html> ") '(error " <html> "))
+
 (check-expect (parse-html-tag "<html></html>") '("<html>" "</html>"))
 (check-expect (parse-html-tag " <html></html>") '(error " <html></html>"))
 (check-expect (parse-html-tag "html></html>") '(error "html></html>"))
