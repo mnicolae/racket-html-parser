@@ -102,6 +102,12 @@ David Eysman, c3eysman
   ((make-char-parser '(#\space #\< #\> #\= #\ #\/)) str))
 
 #|
+(open-tag-parser str)
+|#
+;(define (open-tag-parser str)
+;  ((make-char-parser '(#\<)) str))
+
+#|
 (make-char-parser chr-lst)
   Return a parser that tries to read *one* occurrence of one char from 
   chr-lst at the start of its input. chr-lst is a list of characters.
