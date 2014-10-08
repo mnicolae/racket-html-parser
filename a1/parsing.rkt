@@ -8,7 +8,22 @@ David Eysman, c3eysman
 (provide parse-html-tag make-text-parser
          parse-non-special-char parse-plain-char
          either both star
-         parse-html)
+         parse-html
+         parse-open-tag-char
+         parse-open-matching-tag
+         parse-word
+         parse-close-tag-char
+         parse-open-tag
+         parse-matching-tag
+         parse-element
+         parse-attributes
+         parse-attribute-pair
+         parse-whitespace
+         parse-equal-char
+         parse-double-quote-char
+         parse-text
+         parse-element-content
+         )
 
 #|
 (parse-html-tag str)
@@ -42,40 +57,47 @@ David Eysman, c3eysman
         (error-handler str))))
 
 #|
-(check-prefix str pre)
-  Return true if str starts with pre. Otherwise return false.
+(make-char-parser chr-lst)
+  Return a parser that tries to read *one* occurrence of any char that
+  does not reside in chr-lst at the start of its input. 
+  chr-lst is a list of characters.
+
+> (define parse-abc (make-text-parser '(#\a #\b #\c)))
+> (parse-abc "abcde")
+'("#\a" "bcde")
+> (parse-hi "goodbye hi")
+'(error "goodbye hi")
 |#
-(define (check-prefix str pre)
-  (if (< (string-length str) (string-length pre)) #f
-      (if (string=? (substring str 0 (string-length pre)) pre) #t #f)))
+(define (make-char-parser lst)
+  (lambda (str)
+    (if (= (string-length str) 0)
+        (error-handler str)
+        (let* ([first-chr (string-ref str 0)]
+          [rest-chr (substring str 1 (string-length str))])
+    (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
+        (list first-chr rest-chr)
+        (error-handler str))))))
 
 #|
-(strip-prefix str pre)
-  Return substring of str with prefix pre removed.
-|#
-(define (strip-prefix str pre)
-  (substring str (string-length pre)))
+(make-search-char-parser chr-lst)
+  Return a parser that tries to read *one* occurrence of one char from 
+  chr-lst at the start of its input. chr-lst is a list of characters.
 
-#|
-(define (error-handler str)
-  Error handler function that returns (list 'error str).
+> (define parse-abc (make-text-parser '(#\a #\b #\c)))
+> (parse-abc "abcde")
+'("#\a" "bcde")
+> (parse-hi "goodbye hi")
+'(error "goodbye hi")
 |#
-(define (error-handler str)
-  (list 'error str))
-
-#|
-(parser-error? parser str)
-  Return true if parser can succesfully parse str. Otherwise return false.
-|#
-(define (parser-error? parser str)
-  (if (equal? (parser str) (error-handler str)) #t #f))
-
-#|
-(parsed-error? parser lst)
-  Return true if the first element of lst is 'error. Otherwise return false.
-|#
-(define (parsed-error? lst)
-  (if (equal? (list-ref lst 0) 'error) #t #f))
+(define (make-search-char-parser lst)
+  (lambda (str)
+    (if (= (string-length str) 0)
+        (error-handler str)
+    (let* ([first-chr (string-ref str 0)]
+          [rest-chr (substring str 1 (string-length str))])
+    (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
+        (error-handler str)
+        (list first-chr rest-chr))))))
 
 #|
 (parse-non-special-char str)
@@ -87,7 +109,7 @@ David Eysman, c3eysman
 '(error "<html>")
 |#
 (define (parse-non-special-char str)
-  ((make-char-parser '(#\< #\> #\= #\ #\/)) str))
+  ((make-char-parser '(#\< #\> #\= #\" #\/)) str))
 
 #|
 (parse-plain-char str)
@@ -99,76 +121,164 @@ David Eysman, c3eysman
 '(error " hello!")
 |#
 (define (parse-plain-char str)
-  ((make-char-parser '(#\space #\< #\> #\= #\ #\/)) str))
+  ((make-char-parser '(#\space #\< #\> #\= #\" #\/)) str))
 
+#|
+(parse-open-tag-char str)
+  Try to parse *one* opening tag character at the start of str.
 
-(define (open-tag-parser str)
+> (parse-open-tag-char "<abc>")
+'(#\< "abc>")
+> (parse-non-special-char "hi")
+'(error "hi")
+|#
+(define (parse-open-tag-char str)
   ((make-search-char-parser '(#\<)) str))
 
-
-(define (close-tag-parser str)
-  ((make-char-parser '(#\>)) str))
-
-
-(define (space-parser str)
-  ((star (make-char-parser '(#\space))) str))
-
-
-(define (tag-text-parser str)
-  (foldr string-append "" (map string (first ((star close-tag-parser) str)))))
-
+#|
+(parse-open-matching-tag str)
+|#
+(define (parse-open-matching-tag str)
+  ((make-text-parser "</") str))
 
 #|
-(tag-parser str)
+(parse-word str)
+  Parse an arbitrary sequence of non-empty, non-white, non-special 
+  characters at the beginning of str.
+
+> (parse-open-tag-char "hello world")
+'("hello" " world")
+> (parse-non-special-char "abc></abc>")
+'("abc" "></abc>")
 |#
-(define (tag-parser str)
-  (let* ([parsed (space-parser (tag-text-parser (second (open-tag-parser str))))]
-         
-         [inter (list (foldr string-append "" (map string (first parsed))) (attr-parser (first (rest parsed))))]
-         [inter-split
-          (if (empty? (second inter))
-              '()
-              (last (last (second inter))))]
-         [after (last((star close-tag-parser)str))])
-    (list inter (substring after 1 (string-length after)))))
+(define (parse-word str)
+  (let ([parsed-intermediate ((star parse-plain-char) str)])
+    (list (list->string (first parsed-intermediate)) (second parsed-intermediate))))
 
+#|
+(parse-close-tag-char str)
+  Try to parse *one* close tag character at the start of str.
 
+> (parse-open-tag-char "><p>")
+'(#\> "<p>")
+> (parse-non-special-char "<p>")
+'(error "<p>")
+|#
+(define (parse-close-tag-char str)
+  ((make-search-char-parser '(#\>)) str))
 
+#|
+(parse-open-tag str)
+  Parse an opening tag at the start of str.
+|#
+(define (parse-open-tag str)
+  (let* ([parsed-intermediate1 ((both parse-open-tag-char parse-word) str)]
+         [parsed-intermediate2 (parse-attributes (second parsed-intermediate1))]
+         [parsed-intermediate3 (parse-close-tag-char (second parsed-intermediate2))])
+    (list (second (first parsed-intermediate1)) (first parsed-intermediate2) (second parsed-intermediate3))))
 
-;  (list (tag-text-parser (second (open-tag-parser str)))))
-;  (let ([x (second ((make-search-char-parser '(#\<)) str))]) 
-;  (substring x 0 (- (string-length x) 1)))
+#|
+(parse-attributes)
+|#
+(define (parse-attributes str)
+  (let ([parsed-pair (parse-attribute-pair str)])
+    (if (equal? (first (first parsed-pair)) "")
+        (list '() str)
+        (let ([intermediate-list (parse-attributes-helper '() str)])
+          (list (take intermediate-list (- (length intermediate-list) 1)) (list-ref intermediate-list (- (length intermediate-list) 1)))))))
 
-(define (attr-parser str)
+#|
+(parse-attributes-helper acc str)
+|#
+(define (parse-attributes-helper acc str)
+    (let ([parsed-pair (parse-attribute-pair str)])
+    (if (equal? (first (first parsed-pair)) "")
+        (list (second parsed-pair))
+        (cons (first parsed-pair) (parse-attributes-helper acc (second parsed-pair))))))
+
+#|
+(parse-attribute-pair)
+|#
+(define (parse-attribute-pair str)
+  (let* ([parsed-intermediate1 ((both parse-whitespace parse-word) str)]
+        [parsed-intermediate2 ((both parse-whitespace parse-equal-char) (second parsed-intermediate1))]
+        [parsed-intermediate3 ((both parse-whitespace parse-double-quote-char) (second parsed-intermediate2))]
+        [parsed-intermediate4 ((both parse-whitespace parse-word) (second parsed-intermediate3))]
+        [parsed-intermediate5 ((both parse-whitespace parse-double-quote-char) (second parsed-intermediate4))])
+    (list (list (second (first parsed-intermediate1)) (second (first parsed-intermediate4))) (second parsed-intermediate5))))
+        
+#|
+(parse-whitespace)
+  Parse whitespace at the start of str.
+|#
+(define (parse-whitespace str)
+  (let ([parsed-intermediate ((star (make-search-char-parser '(#\space))) str)])
+    (list '() (second parsed-intermediate))))
+
+#|
+(parse-equal-char)
+  Parse the equal sign at the start of str.
+|#
+(define (parse-equal-char str)
+  ((make-search-char-parser '(#\=)) str))
+
+#|
+(parse-double-quote-char)
+  Parse the equal sign at the start of str.
+|#
+(define (parse-double-quote-char str)
+  ((make-search-char-parser '(#\")) str))
+
+#|
+(parse-matching-tag str)
+  Parse an matching opening tag at the start of str where word is the element name.
+|#
+(define (parse-matching-tag str word)
+  (let* ([parsed-intermediate1 ((both parse-open-matching-tag (make-text-parser word)) str)]
+         [parsed-intermediate2 (parse-close-tag-char (second parsed-intermediate1))])
+    (if (or (parsed-error? parsed-intermediate1) (parsed-error? parsed-intermediate2))
+        (error-handler str)
+        '())))
+
+#|
+(parse-element str)
+  Parse an HTML element which consists of
+     1. Opening tag which consists of of element name and optional element attributes
+     2. An arbitrary number of child elements or text, but not both.
+     3. Matching tag which consists of element name.
+|#
+(define (parse-element str)
+  (let* ([parsed-intermediate1 (parse-open-tag str)]
+         [parsed-intermediate2 (parse-element-content (third parsed-intermediate1))]
+         [parsed-intermediate3 (parse-matching-tag (second parsed-intermediate2) (first parsed-intermediate1))])
+    (if (or (parsed-error? parsed-intermediate1) (parsed-error? parsed-intermediate2) (not (empty? parsed-intermediate3)))
+        (error-handler str)
+         (list (first parsed-intermediate1) (second parsed-intermediate1) (first parsed-intermediate2)))))
+
+#|
+(parse-element-content str)
+   Parse either text or an arbitrary number of children elements.
+|#
+(define (parse-element-content str)
+  ((either parse-text parse-element-children) str))
+
+#|
+(parse-text str)
+  Parse the text residing in an HTML element.
+|#
+(define (parse-text str)
+  (if (equal? (list-ref (parse-text-helper str) 0) "")
+  (error-handler str)
+  (parse-text-helper str)))
   
-  (map (lambda (x) (string-split x "=")) (string-split (string-replace str "\"" ""))))
+(define (parse-text-helper str)
+  (let ([parsed-intermediate ((star parse-non-special-char) str)])
+    (list (list->string (first parsed-intermediate)) (second parsed-intermediate))))
 
 #|
-(make-char-parser chr-lst)
-  Return a parser that tries to read *one* occurrence of one char from 
-  chr-lst at the start of its input. chr-lst is a list of characters.
-
-> (define parse-abc (make-text-parser '(#\a #\b #\c)))
-> (parse-abc "abcde")
-'("#\a" "bcde")
-> (parse-hi "goodbye hi")
-'(error "goodbye hi")
+(parse-element children str)
 |#
-(define (make-char-parser lst)
-  (lambda (str)
-    (let* ([first-chr (string-ref str 0)]
-           [rest-chr (substring str 1 (string-length str))])
-      (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
-          (list first-chr rest-chr)
-          (error-handler str)))))
-
-(define (make-search-char-parser lst)
-  (lambda (str)
-    (let* ([first-chr (string-ref str 0)]
-           [rest-chr (substring str 1 (string-length str))])
-      (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
-          (error-handler str)
-          (list first-chr rest-chr)))))
+(define (parse-element-children str) (void))
 
 #| Parsing Combinators |#
 
@@ -189,8 +299,8 @@ David Eysman, c3eysman
 (define (either parser1 parser2)
   (lambda (str)
     (if (parser-error? parser1 str)
-        (parser2 str)
-        (parser1 str))))
+         (parser2 str)
+         (parser1 str))))
 
 #|
 (both parser1 parser2)
@@ -216,11 +326,11 @@ David Eysman, c3eysman
   (lambda (str)
     (let* ([parsed1 (parser1 str)]
            [parsed2 (parser2 (second parsed1))])
-      (if (parsed-error? parsed1)
-          (error-handler str)
-          (if (parsed-error? parsed2)
-              (error-handler str)
-              (list (list (first parsed1) (first parsed2)) (second parsed2)))))))
+    (if (parsed-error? parsed1)
+        (error-handler str)
+        (if (parsed-error? parsed2)
+            (error-handler str)
+            (list (list (first parsed1) (first parsed2)) (second parsed2)))))))
 
 #|
 (star parser)
@@ -282,4 +392,40 @@ David Eysman, c3eysman
 |#
 (define (parse-html str) (void))
 
-(tag-parser "<body id=\"main\" class=\"super\"> Hello super</body>")
+#| Helper functions |#
+
+#|
+(check-prefix str pre)
+  Return true if str starts with pre. Otherwise return false.
+|#
+(define (check-prefix str pre)
+  (if (< (string-length str) (string-length pre)) #f
+      (if (string=? (substring str 0 (string-length pre)) pre) #t #f)))
+
+#|
+(strip-prefix str pre)
+  Return substring of str with prefix pre removed.
+|#
+(define (strip-prefix str pre)
+  (substring str (string-length pre)))
+
+#|
+(define (error-handler str)
+  Error handler function that returns (list 'error str).
+|#
+(define (error-handler str)
+  (list 'error str))
+
+#|
+(parser-error? parser str)
+  Return true if parser can succesfully parse str. Otherwise return false.
+|#
+(define (parser-error? parser str)
+  (if (equal? (parser str) (error-handler str)) #t #f))
+
+#|
+(parsed-error? parser lst)
+  Return true if the first element of lst is 'error. Otherwise return false.
+|#
+(define (parsed-error? lst)
+  (if (equal? (list-ref lst 0) 'error) #t #f))
