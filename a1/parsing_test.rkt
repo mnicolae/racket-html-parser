@@ -21,21 +21,90 @@ David Eysman, c3eysman
 (check-expect (parse-html-tag "html></html>") '(error "html></html>"))
 
 #| parse-non-special char tests |#
+(check-expect (parse-non-special-char "") '(error ""))
 (check-expect (parse-non-special-char "hi") '(#\h "i"))
 (check-expect (parse-non-special-char "<html>") '(error "<html>"))
 
 #| parse-plain-char tests |#
+(check-expect (parse-plain-char "") '(error ""))
 (check-expect (parse-plain-char "hello") '(#\h "ello"))
 (check-expect (parse-plain-char " hello!") '(error " hello!"))
 
 #| either tests |#
 (check-expect ((either parse-plain-char parse-html-tag) "hello") '(#\h "ello"))
+(check-expect ((either parse-html-tag parse-plain-char) "hello") '(#\h "ello"))
 
 #| both tests |#
 (check-expect ((both parse-html-tag parse-plain-char) "<xml>hello") '(error "<xml>hello"))
 (check-expect ((both parse-html-tag parse-plain-char) "<html> hello") '(error "<html> hello"))
 (check-expect ((both parse-html-tag parse-plain-char) "<html>hello") '(("<html>" #\h) "ello"))
 
-#| TODO: star tests |#
+#| star tests |#
+(check-expect ((star parse-plain-char) "hi") '((#\h #\i) ""))
+(check-expect ((star parse-plain-char) "hi there") '((#\h #\i) " there"))
+(check-expect ((star parse-plain-char) "<html>hi") '(() "<html>hi"))
+
+#| parse-open-tag-char tests |#
+(check-expect (parse-open-tag-char "<abc>") '(#\< "abc>"))
+(check-expect (parse-open-tag-char "hi") '(error "hi"))
+
+#| parse-word tests |#
+(check-expect (parse-word "hello world") '("hello" " world"))
+(check-expect (parse-word "abc></abc>") '("abc" "></abc>"))
+(check-expect (parse-word "<p>") '("" "<p>"))
+
+#| parse-close-tag-char tests |#
+(check-expect (parse-close-tag-char "><p>") '(#\> "<p>"))
+(check-expect (parse-close-tag-char "<p>") '(error "<p>"))
+
+#| parse-attribute-pair tests |#
+(check-expect (parse-attribute-pair "id=\"main\"") '(("id" "main") ""))
+(check-expect (parse-attribute-pair " id = \" main  \"   ") '(("id" "main") "   "))
+
+#| parse-whitespace tests |#
+(check-expect (parse-whitespace " id") '(() "id"))
+(check-expect (parse-whitespace "id") '(() "id"))
+
+#| parse-equal-char tests |#
+(check-expect (parse-equal-char "=id") '(#\= "id"))
+(check-expect (parse-equal-char "id") '(error "id"))
+
+#| parse-double-quote-char tests |#
+(check-expect (parse-double-quote-char "\"id") '(#\" "id"))
+(check-expect (parse-double-quote-char "id") '(error "id"))
+
+#| parse-attributes tests |#
+(check-expect (parse-attributes "id=\"main\"   <") '((("id" "main")) "<"))
+(check-expect (parse-attributes "id=\"main\" id2 = \"main2\"   <") '((("id" "main") ("id2" "main2")) "<")) 
+(check-expect (parse-attributes ">") '(() ">"))
+
+#| parse-open-tag tests |#
+(check-expect (parse-open-tag "<p><") '("p" () "<"))
+(check-expect (parse-open-tag "<p id=\"main\"><") '("p" (("id" "main")) "<"))
+(check-expect (parse-open-tag "<p id=\"main\" id2=\"main2\"><") '("p" (("id" "main") ("id2" "main2")) "<"))
+
+#| parse-text tests |#
+(check-expect (parse-text "Once upon a time <") '("Once upon a time " "<"))
+(check-expect (parse-text "foo bar burgers =") '("foo bar burgers " "="))
+(check-expect (parse-text "<mojito") '(error "<mojito"))
+
+#| TODO: parse-element-content tests |#
+(check-expect (parse-element-content "Once upon a time <") '("Once upon a time " "<"))
+
+#| TODO: parse-element-children tests |#
+
+#| parse-matching-tag tests |#
+(check-expect (parse-matching-tag "</abc>" "abc") '())
+(check-expect (parse-matching-tag "<abc>" "abc") '(error "<abc>"))
+(check-expect (parse-matching-tag "/abc>" "abc") '(error "/abc>"))
+(check-expect (parse-matching-tag "abc>" "abc") '(error "abc>"))
+(check-expect (parse-matching-tag "</abc>" "p") '(error "</abc>"))
+(check-expect (parse-matching-tag "</abc" "abc") '(error "</abc"))
+
+#| TODO: parse-element tests |#
+(check-expect (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time</p>") '("p" (("id" "main") ("id2" "main2")) "Once upon a time"))
+(check-expect (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time<p>") '(error "<p id=\"main\" id2=\"main2\">Once upon a time<p>"))
+(check-expect (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time</x>") '(error "<p id=\"main\" id2=\"main2\">Once upon a time</x>"))
+(check-expect (parse-element "< p id=\"main\" id2=\"main2\">Once upon a time</x>") '(error "< p id=\"main\" id2=\"main2\">Once upon a time</x>"))
 
 (test)
