@@ -90,6 +90,8 @@ David Eysman, c3eysman
 (check-expect (parse-attributes "id=\"main\"   <") '((("id" "main")) "<"))
 (check-expect (parse-attributes "id=\"main\" id2 = \"main2\"   <") '((("id" "main") ("id2" "main2")) "<"))
 (check-expect (parse-attributes ">") '(() ">"))
+;(check-expect (parse-attributes "id=\"main\" id2 = \"   <") '(error "id=\"main\" id2 = \"   <"))
+;(check-expect (parse-attributes "id=\"main\" = \"main2\"   <") '(error "id=\"main\" = \"main2\"   <"))
 
 #| parse-open-tag tests |#
 (check-expect (parse-open-tag "<p><") '("p" () "<"))
