@@ -122,5 +122,11 @@ David Eysman, c3eysman
 (check-expect (parse-element "<p></p>") '("p" () ""))
 
 #| TODO: parse-html tests |#
+(check-expect (parse-html "<hi>Hello</hi><bye>Bye</bye>") '(("hi" () "Hello") "<bye>Bye</bye>"))
+(check-expect (parse-html "<html><body><h1>This is a heading!</h1><div><p>This is a paragraph.</p><h2>This is a subheading.</h2><p>This is another paragraph.</p></div></body></html>") 
+              '("html"()("body"()("p"(("id" "main") ("class" "super"))"Hey"))))
+(check-expect (parse-html "<body><p>Not good</body></p>") '(error "<body><p>Not good</body></p>"))
+(check-expect (parse-html "<html><body class=\"hello\" >Hello, world!</body></html> Other")
+              '(("html"()("body"(("class" "hello"))"Hello, world!"))" Other"))
 
 (test)
