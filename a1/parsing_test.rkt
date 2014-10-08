@@ -24,6 +24,10 @@ David Eysman, c3eysman
 (check-expect (parse-non-special-char "") '(error ""))
 (check-expect (parse-non-special-char "hi") '(#\h "i"))
 (check-expect (parse-non-special-char "<html>") '(error "<html>"))
+(check-expect (parse-non-special-char ">") '(error ">"))
+(check-expect (parse-non-special-char "=") '(error "="))
+(check-expect (parse-non-special-char "\"") '(error "\""))
+(check-expect (parse-non-special-char "/") '(error "/"))
 
 #| parse-plain-char tests |#
 (check-expect (parse-plain-char "") '(error ""))
@@ -31,18 +35,24 @@ David Eysman, c3eysman
 (check-expect (parse-plain-char " hello!") '(error " hello!"))
 
 #| either tests |#
+(check-expect ((either parse-plain-char parse-html-tag) "a") '(#\a ""))
+(check-expect ((either parse-plain-char parse-html-tag) "<html>hi") '("<html>" "hi"))
 (check-expect ((either parse-plain-char parse-html-tag) "hello") '(#\h "ello"))
+(check-expect ((either parse-plain-char parse-html-tag) "") '(error ""))
 (check-expect ((either parse-html-tag parse-plain-char) "hello") '(#\h "ello"))
 
 #| both tests |#
 (check-expect ((both parse-html-tag parse-plain-char) "<xml>hello") '(error "<xml>hello"))
 (check-expect ((both parse-html-tag parse-plain-char) "<html> hello") '(error "<html> hello"))
 (check-expect ((both parse-html-tag parse-plain-char) "<html>hello") '(("<html>" #\h) "ello"))
+(check-expect ((both parse-html-tag parse-plain-char) "") '(error ""))
+(check-expect ((both parse-non-special-char parse-non-special-char) "h") '(error "h"))
 
 #| star tests |#
 (check-expect ((star parse-plain-char) "hi") '((#\h #\i) ""))
 (check-expect ((star parse-plain-char) "hi there") '((#\h #\i) " there"))
 (check-expect ((star parse-plain-char) "<html>hi") '(() "<html>hi"))
+(check-expect ((star parse-plain-char) "") '(() ""))
 
 #| parse-open-tag-char tests |#
 (check-expect (parse-open-tag-char "<abc>") '(#\< "abc>"))
@@ -83,6 +93,7 @@ David Eysman, c3eysman
 (check-expect (parse-open-tag "<p id=\"main\"><") '("p" (("id" "main")) "<"))
 (check-expect (parse-open-tag "<p id=\"main\" id2=\"main2\"><") '("p" (("id" "main") ("id2" "main2")) "<"))
 
+
 #| parse-text tests |#
 (check-expect (parse-text "Once upon a time <") '("Once upon a time " "<"))
 (check-expect (parse-text "foo bar burgers =") '("foo bar burgers " "="))
@@ -106,5 +117,10 @@ David Eysman, c3eysman
 (check-expect (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time<p>") '(error "<p id=\"main\" id2=\"main2\">Once upon a time<p>"))
 (check-expect (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time</x>") '(error "<p id=\"main\" id2=\"main2\">Once upon a time</x>"))
 (check-expect (parse-element "< p id=\"main\" id2=\"main2\">Once upon a time</x>") '(error "< p id=\"main\" id2=\"main2\">Once upon a time</x>"))
+(check-expect (parse-element "<p id=\"main\" id2=\"main2\"><h></h></p>") '(("p" (("id" "main") ("id2" "main2")) "<h></h>")))
+(check-expect (parse-element "<p id=\"main\" id2=\"main2\"><h>hi</h></p>") '(("p" (("id" "main") ("id2" "main2")) "<h>hi</h>")))
+(check-expect (parse-element "<p></p>") '("p" () ""))
+
+#| TODO: parse-html tests |#
 
 (test)
