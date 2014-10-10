@@ -180,7 +180,9 @@ David Eysman, c3eysman
   (let* ([parsed-open-tag-chr ((both parse-open-tag-char parse-word) str)]
          [parsed-attributes (parse-attributes (second parsed-open-tag-chr))]
          [parsed-close-tag-chr (parse-close-tag-char (second parsed-attributes))])
-    (list (second (first parsed-open-tag-chr)) (first parsed-attributes) (second parsed-close-tag-chr))))
+    (if (or (parsed-error? parsed-open-tag-chr) (parsed-error? parsed-attributes) (parsed-error? parsed-close-tag-chr))
+        (error-handler str)
+        (list (list (second (first parsed-open-tag-chr)) (first parsed-attributes)) (second parsed-close-tag-chr)))))
 
 #|
 (parse-attributes)
@@ -214,7 +216,7 @@ David Eysman, c3eysman
          [parsed-quote-char1 ((both parse-whitespace parse-double-quote-char) (second parsed-equal-char))]
          [parsed-attr-value ((both parse-whitespace parse-word) (second parsed-quote-char1))]
          [parsed-quote-char2 ((both parse-whitespace parse-double-quote-char) (second parsed-attr-value))])
-        (list (list (second (first parsed-attr-name)) (second (first parsed-attr-value))) (second parsed-quote-char2))))
+    (list (list (second (first parsed-attr-name)) (second (first parsed-attr-value))) (second parsed-quote-char2))))
 
 #|
 (parse-whitespace)
@@ -278,12 +280,14 @@ David Eysman, c3eysman
 (define (parse-element str)
   (if (empty-str? str)
       (error-handler str)
-      (let* ([parsed-open-tag (parse-open-tag str)]
-             [parsed-content (parse-element-content (third parsed-open-tag))]
-             [parsed-matching-tag (parse-matching-tag (second parsed-content) (first parsed-open-tag))])
-        (if (or (parsed-error? parsed-open-tag) (parsed-error? parsed-content) (parsed-error? parsed-matching-tag))
+      (let* ([parsed-open-tag (parse-open-tag str)])
+        (if (parsed-error? parsed-open-tag)
             (error-handler str)
-            (list (list (first parsed-open-tag) (second parsed-open-tag) (first parsed-content)) (second parsed-matching-tag))))))
+            (let* ([parsed-content (parse-element-content (second parsed-open-tag) (first (first parsed-open-tag)))])
+              (let* ([parsed-matching-tag (parse-matching-tag (second parsed-content) (first (first parsed-open-tag)))])
+                (if (parsed-error? parsed-matching-tag)
+                    (error-handler str)   
+                    (list (append (first parsed-open-tag) (list (first parsed-content))) (second parsed-matching-tag)))))))))
 
 #|
 (parse-element-content str)
@@ -295,8 +299,11 @@ David Eysman, c3eysman
 > (parse-element-content "<p></p><a>hello</a></abc>") 
 '(("p" () "")  ("a" () "hello") "</abc>")
 |#
-(define (parse-element-content str)
-  ((either parse-text parse-element-children) str))
+(define (parse-element-content str word)
+  (let* ([parsed-matching-tag (parse-matching-tag str word)])
+    (if (parsed-error? parsed-matching-tag)
+        ((either parse-text parse-element-children) str)
+        (list "" str))))
 
 #|
 (parse-text str)
@@ -308,9 +315,9 @@ David Eysman, c3eysman
 |#
 (define (parse-text str)
   (if (empty-str? str)
-      ""
+      (error-handler str)
       (if (equal? (list-ref (parse-text-helper str) 0) "")
-          (list "" str)
+          (error-handler str)
           (parse-text-helper str))))
 
 #|
@@ -329,7 +336,12 @@ David Eysman, c3eysman
 > (parse-element-content "<p><a></a></p>") 
 '(("p" () ("a" () "")) "")
 |#
-(define (parse-element-children str) (void))
+(define (parse-element-children str)
+  (let* ([parsed-element (parse-element str)]
+        [parsed-open-tag (parse-open-tag (second parsed-element))])
+    (if (parsed-error? parsed-open-tag)
+    (parse-element str)
+    ((star parse-element) str))))
 
 #| Parsing Combinators |#
 
@@ -443,7 +455,7 @@ David Eysman, c3eysman
 > (parse-html "<body><p>Not good</body></p>")
 '(error "<body><p>Not good</body></p>")
 |#
-(define (parse-html str) (void))
+(define (parse-html str) (parse-element str))
 
 #| Helper functions |#
 
