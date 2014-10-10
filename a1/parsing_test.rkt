@@ -140,4 +140,14 @@ David Eysman, c3eysman
 ;(check-expect (parse-html "<html><body class=\"hello\" >Hello, world!</body></html> Other")
 ;              '(("html"()("body"(("class" "hello"))"Hello, world!"))" Other"))
 
+#| chr-in-chr-lst? tests |#
+(check-expect (chr-in-chr-lst? #\space '(#\" #\< #\> #\/ #\space)) #t)
+(check-expect (chr-in-chr-lst? #\a '(#\h #\e #\l #\o)) #f)
+
+#| empty-str? tests |#
+(check-expect (empty-str? "") #t)
+(check-expect (empty-str? "halo") #f)
+
+
+
 (test)

@@ -23,6 +23,8 @@ David Eysman, c3eysman
          parse-double-quote-char
          parse-text
          parse-element-content
+         chr-in-chr-lst?
+         empty-str?
          )
 
 #|
@@ -70,7 +72,7 @@ David Eysman, c3eysman
 |#
 (define (make-char-parser lst)
   (lambda (str)
-    (if (= (string-length str) 0)
+    (if (empty-str? str)
         (error-handler str)
         (let* ([first-chr (string-ref str 0)]
                [rest-chr (substring str 1 (string-length str))])
@@ -91,7 +93,7 @@ David Eysman, c3eysman
 |#
 (define (make-search-char-parser lst)
   (lambda (str)
-    (if (= (string-length str) 0)
+    (if (empty-str? str)
         (error-handler str)
         (let* ([first-chr (string-ref str 0)]
                [rest-chr (substring str 1 (string-length str))])
@@ -207,12 +209,12 @@ David Eysman, c3eysman
 (parse-attribute-pair)
 |#
 (define (parse-attribute-pair str)
-  (let* ([parsed-intermediate1 ((both parse-whitespace parse-word) str)]
-         [parsed-intermediate2 ((both parse-whitespace parse-equal-char) (second parsed-intermediate1))]
-         [parsed-intermediate3 ((both parse-whitespace parse-double-quote-char) (second parsed-intermediate2))]
-         [parsed-intermediate4 ((both parse-whitespace parse-word) (second parsed-intermediate3))]
-         [parsed-intermediate5 ((both parse-whitespace parse-double-quote-char) (second parsed-intermediate4))])
-    (list (list (second (first parsed-intermediate1)) (second (first parsed-intermediate4))) (second parsed-intermediate5))))
+  (let* ([parsed-attr-name ((both parse-whitespace parse-word) str)]
+         [parsed-equal-char ((both parse-whitespace parse-equal-char) (second parsed-attr-name))]
+         [parsed-quote-char1 ((both parse-whitespace parse-double-quote-char) (second parsed-equal-char))]
+         [parsed-attr-value ((both parse-whitespace parse-word) (second parsed-quote-char1))]
+         [parsed-quote-char2 ((both parse-whitespace parse-double-quote-char) (second parsed-attr-value))])
+        (list (list (second (first parsed-attr-name)) (second (first parsed-attr-value))) (second parsed-quote-char2))))
 
 #|
 (parse-whitespace)
@@ -274,7 +276,7 @@ David Eysman, c3eysman
 '(("p" (("id" "main") ("id2" "main2")) "<h></h>"))
 |#
 (define (parse-element str)
-  (if (equal? (string-length str) 0)
+  (if (empty-str? str)
       (error-handler str)
       (let* ([parsed-open-tag (parse-open-tag str)]
              [parsed-content (parse-element-content (third parsed-open-tag))]
@@ -305,7 +307,7 @@ David Eysman, c3eysman
 '("Once upon a time " "<")
 |#
 (define (parse-text str)
-  (if (equal? (string-length str) 0)
+  (if (empty-str? str)
       ""
       (if (equal? (list-ref (parse-text-helper str) 0) "")
           (list "" str)
@@ -468,7 +470,7 @@ David Eysman, c3eysman
   (list 'error str))
 
 #|
-(parsed-error? parser lst)
+(parsed-error? parser str)
   Return true if the first element of lst is 'error. Otherwise return false.
 |#
 (define (parsed-error? lst)
@@ -480,3 +482,10 @@ David Eysman, c3eysman
 |#
 (define (chr-in-chr-lst? chr chr-lst)
   (if (empty? (filter (lambda (x) (equal? chr x)) chr-lst)) #f #t))
+
+#|
+(empty-str? str)
+  Return true if str is empty (has length zero). Otherwise return false.
+|#
+(define (empty-str? str)
+  (if (= (string-length str) 0) #t #f))
