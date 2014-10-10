@@ -97,6 +97,7 @@ David Eysman, c3eysman
 (check-expect (parse-open-tag "<p><") '("p" () "<"))
 (check-expect (parse-open-tag "<p id=\"main\"><") '("p" (("id" "main")) "<"))
 (check-expect (parse-open-tag "<p id=\"main\" id2=\"main2\"><") '("p" (("id" "main") ("id2" "main2")) "<"))
+; add an error test
 
 #| parse-text tests |#
 (check-expect (parse-text "Once upon a time <") '("Once upon a time " "<"))
@@ -105,8 +106,12 @@ David Eysman, c3eysman
 
 #| TODO: parse-element-content tests |#
 (check-expect (parse-element-content "Once upon a time <") '("Once upon a time " "<"))
+;(check-expect (parse-element-content "<p></p><a>hello</a></abc>") '(("p" () "")  ("a" () "hello") "</abc>"))
 
 #| TODO: parse-element-children tests |#
+;(check-expect (parse-element-content "<p></p><b><b></abc>") '(("p" () "") ("a" () "") "") "</abc>"))
+;(check-expect (parse-element-content "<p><a></a></p>") '(("p" () ("a" () "")) ""))
+
 
 #| parse-matching-tag tests |#
 (check-expect (parse-matching-tag "</abc>" "abc") '(() ""))

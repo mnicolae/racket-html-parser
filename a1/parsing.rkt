@@ -74,9 +74,9 @@ David Eysman, c3eysman
         (error-handler str)
         (let* ([first-chr (string-ref str 0)]
                [rest-chr (substring str 1 (string-length str))])
-          (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
-              (list first-chr rest-chr)
-              (error-handler str))))))
+          (if (chr-in-chr-lst? first-chr lst)
+              (error-handler str)
+              (list first-chr rest-chr))))))
 
 #|
 (make-search-char-parser chr-lst)
@@ -95,9 +95,9 @@ David Eysman, c3eysman
         (error-handler str)
         (let* ([first-chr (string-ref str 0)]
                [rest-chr (substring str 1 (string-length str))])
-          (if (empty? (filter (lambda (x) (equal? first-chr x)) lst))
-              (error-handler str)
-              (list first-chr rest-chr))))))
+          (if (chr-in-chr-lst? first-chr lst)
+              (list first-chr rest-chr)
+              (error-handler str))))))
 
 #|
 (parse-non-special-char str)
@@ -152,8 +152,8 @@ David Eysman, c3eysman
 '("abc" "></abc>")
 |#
 (define (parse-word str)
-  (let ([parsed-intermediate ((star parse-plain-char) str)])
-    (list (list->string (first parsed-intermediate)) (second parsed-intermediate))))
+  (let ([parsed-word ((star parse-plain-char) str)])
+    (list (list->string (first parsed-word)) (second parsed-word))))
 
 #|
 (parse-close-tag-char str)
@@ -170,15 +170,22 @@ David Eysman, c3eysman
 #|
 (parse-open-tag str)
   Parse an opening tag at the start of str.
+
+> (parse-open-tag "<p><") '("p" () "<"))
+'("p" () "<")
 |#
 (define (parse-open-tag str)
-  (let* ([parsed-intermediate1 ((both parse-open-tag-char parse-word) str)]
-         [parsed-intermediate2 (parse-attributes (second parsed-intermediate1))]
-         [parsed-intermediate3 (parse-close-tag-char (second parsed-intermediate2))])
-    (list (second (first parsed-intermediate1)) (first parsed-intermediate2) (second parsed-intermediate3))))
+  (let* ([parsed-open-tag-chr ((both parse-open-tag-char parse-word) str)]
+         [parsed-attributes (parse-attributes (second parsed-open-tag-chr))]
+         [parsed-close-tag-chr (parse-close-tag-char (second parsed-attributes))])
+    (list (second (first parsed-open-tag-chr)) (first parsed-attributes) (second parsed-close-tag-chr))))
 
 #|
 (parse-attributes)
+  Parse an arbitrary number of attribute pairs at the start of str.
+
+> (parse-attributes "id=\"main\"   <") 
+'((("id" "main")) "<")
 |#
 (define (parse-attributes str)
   (let ([parsed-pair (parse-attribute-pair str)])
@@ -210,6 +217,9 @@ David Eysman, c3eysman
 #|
 (parse-whitespace)
   Parse whitespace at the start of str.
+
+> (parse-whitespace " id") 
+'(() "id"))
 |#
 (define (parse-whitespace str)
   (let ([parsed-intermediate ((star (make-search-char-parser '(#\space))) str)])
@@ -218,6 +228,9 @@ David Eysman, c3eysman
 #|
 (parse-equal-char)
   Parse the equal sign at the start of str.
+
+> (parse-equal-char "=id") 
+'(#\= "id"))
 |#
 (define (parse-equal-char str)
   ((make-search-char-parser '(#\=)) str))
@@ -225,6 +238,9 @@ David Eysman, c3eysman
 #|
 (parse-double-quote-char)
   Parse the equal sign at the start of str.
+
+> (parse-double-quote-char "\"id") 
+'(#\" "id")
 |#
 (define (parse-double-quote-char str)
   ((make-search-char-parser '(#\")) str))
@@ -232,13 +248,18 @@ David Eysman, c3eysman
 #|
 (parse-matching-tag str)
   Parse an matching opening tag at the start of str where word is the element name.
+
+> (parse-matching-tag "</abc><p>" "abc") 
+'(() "<p>")
+> (parse-matching-tag "</abc>" "p") 
+'(error "</abc>")
 |#
 (define (parse-matching-tag str word)
-  (let* ([parsed-intermediate1 ((both parse-open-matching-tag (make-text-parser word)) str)]
-         [parsed-intermediate2 (parse-close-tag-char (second parsed-intermediate1))])
-    (if (or (parsed-error? parsed-intermediate1) (parsed-error? parsed-intermediate2))
+  (let* ([parsed-matching-tag-word ((both parse-open-matching-tag (make-text-parser word)) str)]
+         [parsed-close-tag (parse-close-tag-char (second parsed-matching-tag-word))])
+    (if (or (parsed-error? parsed-matching-tag-word) (parsed-error? parsed-close-tag))
         (error-handler str) 
-        (list '() (second parsed-intermediate2)))))
+        (list '() (second parsed-close-tag)))))
 
 #|
 (parse-element str)
@@ -246,27 +267,42 @@ David Eysman, c3eysman
      1. Opening tag which consists of of element name and optional element attributes
      2. An arbitrary number of child elements or text, but not both.
      3. Matching tag which consists of element name.
+
+> (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time</p>") 
+'(("p" (("id" "main") ("id2" "main2")) "Once upon a time") "")
+> (parse-element "<p id=\"main\" id2=\"main2\"><h></h></p>") 
+'(("p" (("id" "main") ("id2" "main2")) "<h></h>"))
 |#
 (define (parse-element str)
   (if (equal? (string-length str) 0)
       (error-handler str)
-  (let* ([parsed-intermediate1 (parse-open-tag str)]
-         [parsed-intermediate2 (parse-element-content (third parsed-intermediate1))]
-         [parsed-intermediate3 (parse-matching-tag (second parsed-intermediate2) (first parsed-intermediate1))])
-    (if (or (parsed-error? parsed-intermediate1) (parsed-error? parsed-intermediate2) (parsed-error? parsed-intermediate3))
-        (error-handler str)
-        (list (list (first parsed-intermediate1) (second parsed-intermediate1) (first parsed-intermediate2)) (second parsed-intermediate3))))))
+      (let* ([parsed-open-tag (parse-open-tag str)]
+             [parsed-content (parse-element-content (third parsed-open-tag))]
+             [parsed-matching-tag (parse-matching-tag (second parsed-content) (first parsed-open-tag))])
+        (if (or (parsed-error? parsed-open-tag) (parsed-error? parsed-content) (parsed-error? parsed-matching-tag))
+            (error-handler str)
+            (list (list (first parsed-open-tag) (second parsed-open-tag) (first parsed-content)) (second parsed-matching-tag))))))
 
 #|
 (parse-element-content str)
-   Parse either text or an arbitrary number of children elements.
+   Parse either text or an arbitrary number of children elements 
+   at the start of str.
+
+> (parse-element-content "Once upon a time <") 
+'("Once upon a time " "<")
+> (parse-element-content "<p></p><a>hello</a></abc>") 
+'(("p" () "")  ("a" () "hello") "</abc>")
 |#
 (define (parse-element-content str)
   ((either parse-text parse-element-children) str))
 
 #|
 (parse-text str)
-  Parse the text residing in an HTML element.
+  Parse the text residing in the HTML element 
+  at the start of str.
+
+(parse-text "Once upon a time <") 
+'("Once upon a time " "<")
 |#
 (define (parse-text str)
   (if (equal? (string-length str) 0)
@@ -274,19 +310,28 @@ David Eysman, c3eysman
       (if (equal? (list-ref (parse-text-helper str) 0) "")
           (list "" str)
           (parse-text-helper str))))
-  
-  (define (parse-text-helper str)
-    (let ([parsed-intermediate ((star parse-non-special-char) str)])
-      (list (list->string (first parsed-intermediate)) (second parsed-intermediate))))
-  
-  #|
-(parse-element children str)
+
+#|
+(parse-text-helper str)
 |#
-  (define (parse-element-children str) (void))
-  
-  #| Parsing Combinators |#
-  
-  #|
+(define (parse-text-helper str)
+  (let ([parsed-word ((star parse-non-special-char) str)])
+    (list (list->string (first parsed-word)) (second parsed-word))))
+
+#|
+(parse-element children str)
+  Parse an arbitrary number of HTML elements at the start of str.
+
+> (parse-element-content "<p></p><b><b></abc>") 
+'(("p" () "") ("a" () "") "") "</abc>")
+> (parse-element-content "<p><a></a></p>") 
+'(("p" () ("a" () "")) "")
+|#
+(define (parse-element-children str) (void))
+
+#| Parsing Combinators |#
+
+#|
 (either parser1 parser2)
 
   Return a new parser that does the following:
@@ -300,13 +345,13 @@ David Eysman, c3eysman
 > ((either parse-plain-char parse-html-tag) "<xml>hello")
 '(error "<xml>hello")
 |#
-  (define (either parser1 parser2)
-    (lambda (str)
-      (if (parser-error? parser1 str)
-          (parser2 str)
-          (parser1 str))))
-  
-  #|
+(define (either parser1 parser2)
+  (lambda (str)
+    (if (parsed-error? (parser1 str))
+        (parser2 str)
+        (parser1 str))))
+
+#|
 (both parser1 parser2)
 
   Return a new parser that does the following:
@@ -326,17 +371,15 @@ David Eysman, c3eysman
 > ((both parse-html-tag parse-plain-char) "<html> hello")
 '(error "<html> hello")
 |#
-  (define (both parser1 parser2)
-    (lambda (str)
-      (let* ([parsed1 (parser1 str)]
-             [parsed2 (parser2 (second parsed1))])
-        (if (parsed-error? parsed1)
-            (error-handler str)
-            (if (parsed-error? parsed2)
-                (error-handler str)
-                (list (list (first parsed1) (first parsed2)) (second parsed2)))))))
-  
-  #|
+(define (both parser1 parser2)
+  (lambda (str)
+    (let* ([parsed1 (parser1 str)]
+           [parsed2 (parser2 (second parsed1))])
+      (if (or (parsed-error? parsed1) (parsed-error? parsed2))
+          (error-handler str)
+          (list (list (first parsed1) (first parsed2)) (second parsed2))))))
+
+#|
 (star parser)
 
   Return a new parser that tries to parse using parser
@@ -356,20 +399,24 @@ David Eysman, c3eysman
 > ((star parse-plain-char) "<html>hi")
 '(() "<html>hi")
 |#
-  (define (star parser)
-    (lambda (str) (list (take ((rec-star parser) str) (- (length ((rec-star parser) str)) 1))
-                        (last ((rec-star parser) str)))))
-  
-  (define (rec-star parser)
-    (lambda (str) (if (equal? str "")
-                      (list str)
-                      (if (equal? (first (parser str)) 'error)
-                          (list str)
-                          (append (list(first (parser str))) ((rec-star parser) (first (rest (parser str)))))))))
-  
-  #| HTML Parsing |#
-  
-  #|
+(define (star parser)
+  (lambda (str)
+    (list (take ((rec-star parser) str) (- (length ((rec-star parser) str)) 1)) (last ((rec-star parser) str)))))
+
+#|
+(rec-star parser)
+|#
+(define (rec-star parser)
+  (lambda (str)
+    (if (equal? str "")
+        (list str)
+        (if (parsed-error? (parser str))
+            (list str)
+            (append (list (first (parser str))) ((rec-star parser) (first (rest (parser str)))))))))
+
+#| HTML Parsing |#
+
+#|
 (parse-html str)
 
   Parse HTML content at the beginning of str, returning (list data rest),
@@ -394,43 +441,42 @@ David Eysman, c3eysman
 > (parse-html "<body><p>Not good</body></p>")
 '(error "<body><p>Not good</body></p>")
 |#
-  (define (parse-html str) (void))
-  
-  #| Helper functions |#
-  
-  #|
+(define (parse-html str) (void))
+
+#| Helper functions |#
+
+#|
 (check-prefix str pre)
   Return true if str starts with pre. Otherwise return false.
 |#
-  (define (check-prefix str pre)
-    (if (< (string-length str) (string-length pre)) #f
-        (if (string=? (substring str 0 (string-length pre)) pre) #t #f)))
-  
-  #|
+(define (check-prefix str pre)
+  (if (< (string-length str) (string-length pre)) #f
+      (if (string=? (substring str 0 (string-length pre)) pre) #t #f)))
+
+#|
 (strip-prefix str pre)
   Return substring of str with prefix pre removed.
 |#
-  (define (strip-prefix str pre)
-    (substring str (string-length pre)))
-  
-  #|
+(define (strip-prefix str pre)
+  (substring str (string-length pre)))
+
+#|
 (define (error-handler str)
   Error handler function that returns (list 'error str).
 |#
-  (define (error-handler str)
-    (list 'error str))
-  
-  #|
-(parser-error? parser str)
-  Return true if parser can succesfully parse str. Otherwise return false.
-|#
-  (define (parser-error? parser str)
-    (if (equal? (parser str) (error-handler str)) #t #f))
-  
-  #|
+(define (error-handler str)
+  (list 'error str))
+
+#|
 (parsed-error? parser lst)
   Return true if the first element of lst is 'error. Otherwise return false.
 |#
-  (define (parsed-error? lst)
-    (if (equal? (list-ref lst 0) 'error) #t #f))
-  
+(define (parsed-error? lst)
+  (if (equal? (list-ref lst 0) 'error) #t #f))
+
+#|
+(chr-in-str? chr chr-lst)
+  Return true if chr resides in chr-lst. Otherwise return false.
+|#
+(define (chr-in-chr-lst? chr chr-lst)
+  (if (empty? (filter (lambda (x) (equal? chr x)) chr-lst)) #f #t))
