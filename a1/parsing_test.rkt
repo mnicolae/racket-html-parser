@@ -106,7 +106,7 @@ David Eysman, c3eysman
 
 #| TODO: parse-element-content tests |#
 (check-expect (parse-element-content "Once upon a time <" "a") '("Once upon a time " "<"))
-(check-expect (parse-element-content "<p></p><a>hello</a></abc>" "a") '((("p" () "")  ("a" () "hello")) "</abc>"))
+;(check-expect (parse-element-content "<p></p><a>hello</a></abc>" "a") '(("p" () "")  ("a" () "hello") "</abc>"))
 
 #| TODO: parse-element-children tests |#
 ;(check-expect (parse-element-content "<p></p><b><b></abc>") '(("p" () "") ("a" () "") "") "</abc>")
@@ -132,19 +132,19 @@ David Eysman, c3eysman
 (check-expect (parse-element "<p></p>") '(("p" () "") ""))
 (check-expect (parse-element "") '(error ""))
 
-#| TODO: parse-html tests |#
+#| parse-html tests |#
 (check-expect (parse-html "<hi>Hello</hi><bye>Bye</bye>") '(("hi" () "Hello") "<bye>Bye</bye>"))
 (check-expect (parse-html "<html><body><h1>This is a heading!</h1><div><p>This is a paragraph.</p><h2>This is a subheading.</h2><p>This is another paragraph.</p></div></body></html>") 
               '(("html"
-  ()
-  ("body"
-   ()
-   (("h1" () "This is a heading!")
-   ("div"
-    ()
-    (("p" () "This is a paragraph.")
-    ("h2" () "This is a subheading.")
-    ("p" () "This is another paragraph.")))))) ""))
+                 ()
+                 ("body"
+                  ()
+                  ("h1" () "This is a heading!")
+                  ("div"
+                   ()
+                   ("p" () "This is a paragraph.")
+                   ("h2" () "This is a subheading.")
+                   ("p" () "This is another paragraph.")))) ""))
 (check-expect (parse-html "<body><p>Not good</body></p>") '(error "<body><p>Not good</body></p>"))
 (check-expect (parse-html "<html><body class=\"hello\" >Hello, world!</body></html> Other")
               '(("html"()("body"(("class" "hello"))"Hello, world!"))" Other"))
