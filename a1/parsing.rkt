@@ -284,10 +284,10 @@ David Eysman, c3eysman
         (if (parsed-error? parsed-open-tag)
             (error-handler str)
             (let* ([parsed-content (parse-element-content (second parsed-open-tag) (first (first parsed-open-tag)))])
-              (let* ([parsed-matching-tag (parse-matching-tag (second parsed-content) (first (first parsed-open-tag)))])
+              (let* ([parsed-matching-tag (parse-matching-tag (last parsed-content) (first (first parsed-open-tag)))])
                 (if (parsed-error? parsed-matching-tag)
                     (error-handler str)   
-                    (list (append (first parsed-open-tag) (list (first parsed-content))) (second parsed-matching-tag)))))))))
+                    (list (append (first parsed-open-tag) (take parsed-content (- (length parsed-content) 1))) (second parsed-matching-tag)))))))))
 
 #|
 (parse-element-content str)
@@ -338,10 +338,11 @@ David Eysman, c3eysman
 |#
 (define (parse-element-children str)
   (let* ([parsed-element (parse-element str)]
-        [parsed-open-tag (parse-open-tag (second parsed-element))])
+         [parsed-open-tag (parse-open-tag (second parsed-element))])
     (if (parsed-error? parsed-open-tag)
-    (parse-element str)
-    ((star parse-element) str))))
+        (parse-element str)
+        (let ([parsed-siblings ((star parse-element) str)])
+        (append (foldr cons '() (first parsed-siblings)) (list (second parsed-siblings)))))))
 
 #| Parsing Combinators |#
 
