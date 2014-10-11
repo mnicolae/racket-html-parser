@@ -25,6 +25,7 @@ David Eysman, c3eysman
          parse-element-content
          chr-in-chr-lst?
          empty-str?
+         parse-element-children
          )
 
 #|

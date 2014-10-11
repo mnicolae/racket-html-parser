@@ -104,14 +104,13 @@ David Eysman, c3eysman
 (check-expect (parse-text "foo bar burgers =") '("foo bar burgers " "="))
 (check-expect (parse-text "<mojito") '(error "<mojito"))
 
-#| TODO: parse-element-content tests |#
+#| parse-element-content tests |#
 (check-expect (parse-element-content "Once upon a time <" "a") '("Once upon a time " "<"))
-;(check-expect (parse-element-content "<p></p><a>hello</a></abc>" "a") '(("p" () "")  ("a" () "hello") "</abc>"))
+(check-expect (parse-element-content "<p></p><a>hello</a></abc>" "a") '(("p" () "")  ("a" () "hello") "</abc>"))
 
-#| TODO: parse-element-children tests |#
-;(check-expect (parse-element-content "<p></p><b><b></abc>") '(("p" () "") ("a" () "") "") "</abc>")
-;(check-expect (parse-element-content "<p><a></a></p>") '(("p" () ("a" () "")) ""))
-
+#| parse-element-children tests |#
+(check-expect (parse-element-children "<p></p><b>/<b></abc>") '(("p" () "") "<b>/<b></abc>"))
+(check-expect (parse-element-children "<p><a></a></p></abc>") '(("p" () ("a" () "")) "</abc>"))
 
 #| parse-matching-tag tests |#
 (check-expect (parse-matching-tag "</abc>" "abc") '(() ""))
@@ -122,7 +121,7 @@ David Eysman, c3eysman
 (check-expect (parse-matching-tag "</abc" "abc") '(error "</abc"))
 (check-expect (parse-matching-tag "</abc>abcd" "abc") '(() "abcd"))
 
-#| TODO: parse-element tests |#
+#| parse-element tests |#
 (check-expect (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time</p>") '(("p" (("id" "main") ("id2" "main2")) "Once upon a time") ""))
 (check-expect (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time<p>") '(error "<p id=\"main\" id2=\"main2\">Once upon a time<p>"))
 (check-expect (parse-element "<p id=\"main\" id2=\"main2\">Once upon a time</x>") '(error "<p id=\"main\" id2=\"main2\">Once upon a time</x>"))
