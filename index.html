@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<!-- saved from url=(0070)http://www.cs.toronto.edu/~liudavid/csc324/assignments/a1/parsing.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+  <meta charset="utf-8">
+  <title>CSC324 Fall 2014</title>
+  <link rel="icon" type="image/x-icon" href="http://www.cs.toronto.edu/~liudavid/csc324/images/favicon.ico">
+  <link rel="stylesheet" href="http://www.cs.toronto.edu/~liudavid/csc324/styles/main.css">
+  <script src="./jquery-1.11.1.js"></script>
+  <script src="./misc.js"></script>
+      <style type="text/css">
+    table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
+      margin: 0; padding: 0; vertical-align: baseline; border: none; }
+    table.sourceCode { width: 100%; line-height: 100%; background-color: #303030; color: #cccccc; }
+    td.lineNumbers { text-align: right; padding-right: 4px; padding-left: 4px; }
+    td.sourceCode { padding-left: 5px; }
+    pre, code { color: #cccccc; background-color: #303030; }
+    code > span.kw { color: #f0dfaf; }
+    code > span.dt { color: #dfdfbf; }
+    code > span.dv { color: #dcdccc; }
+    code > span.bn { color: #dca3a3; }
+    code > span.fl { color: #c0bed1; }
+    code > span.ch { color: #dca3a3; }
+    code > span.st { color: #cc9393; }
+    code > span.co { color: #7f9f7f; }
+    code > span.ot { color: #efef8f; }
+    code > span.al { color: #ffcfaf; }
+    code > span.fu { color: #efef8f; }
+    code > span.er { color: #c3bf9f; }
+    </style>
+    <style id="style-1-cropbar-clipper">/* Copyright 2014 Evernote Corporation. All rights reserved. */
+.en-markup-crop-options {
+    top: 18px !important;
+    left: 50% !important;
+    margin-left: -100px !important;
+    width: 200px !important;
+    border: 2px rgba(255,255,255,.38) solid !important;
+    border-radius: 4px !important;
+}
+
+.en-markup-crop-options div div:first-of-type {
+    margin-left: 0px !important;
+}
+</style></head>
+<body>
+   
+  <div id="nav-background"></div>
+  <div class="center">
+    <div id="line_left_long" style="display: none;"></div>
+    <div id="line_right_long" style="display: none;"></div>
+    <nav>
+      <ul>
+        <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/index.html">CSC324</a></li>
+        <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/learn.html" class="here">Learn</a></li>
+        <li><a href="https://piazza.com/utoronto.ca/fall2014/csc324/home">Discuss</a></li>
+        <li><a href="https://markus.cdf.toronto.edu/csc324-2014-09/">Submit</a></li>
+        <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/feedback.html">Anonymous Feedback</a></li>
+        <li><a id="more">More</a>
+          <div id="more-wrap">
+            <ul id="more-dropdown" style="display: none;">
+              <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/calendar.html">Calendar</a></li>
+              <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/res/info.pdf" target="blank_">Info Sheet</a></li>
+              <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/integrity.html">Academic Integrity</a></li>
+              <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/homework_faq.html">Homework FAQ</a></li>
+              <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/lab_policies.html">Lab Policies</a></li>
+              <li><a href="http://www.cs.toronto.edu/~liudavid/csc324/exams.html">Exam Info</a></li>
+              <li><a href="https://login.library.utoronto.ca/cgi-bin/go_log.pl?url=http://exams.library.utoronto.ca">University Exam Repo</a></li>
+            </ul>
+          </div>
+        </li>
+        <span style="float: right;"><li>Fall 2014</li></span>
+      </ul>
+    </nav>
+  </div>
+  <div id="content">
+    <div class="center">
+<!-- Don't indent the body. There seems to be issues with this and code rendering. -->
+<a href="http://www.github.com/mnicolae/racket-html-parser">
+    <img alt="Fork me on GitHub" src="http://s3.amazonaws.com/github/ribbons/forkme_left_darkblue_121621.png">
+  </a>    
+<h1 id="assignment-1---parsing-due-oct-11-noon">Assignment 1 - Parsing (due Oct 11, noon)</h1>
+<p>General assignment instructions:</p>
+<ul>
+<li>Assignments may be done in <strong>pairs</strong>.</li>
+<li>You may not import any Racket libraries, unless explicitly told to.</li>
+<li>You may write helper functions freely; in fact, you are encouraged to do so to keep your code easy to understand.</li>
+<li>Your grade will be determined by a combination of automated tests, and TA grading your work for design, use of higher-order functions, and testing.</li>
+<li>Submit early and often! MarkUs is rather slow close to the due date. It is your responsibility to make sure your work is submitted on time.</li>
+</ul>
+<h2 id="updates-and-clarifications">Updates and clarifications</h2>
+<ul>
+<li>Oct 7: All parser failures (including those for `parse-html-tag`), should return `(list 'error str)`, where `str` is the original string passed to the parser. You should **not** return `'(error "hi")` unless the passed in string was indeed `"hi"`.</li>
+<li>Sept 29: if an element contains nested elements, ignore all whitespace separating the nested elements.</li>
+<li>Sept 29: you may assume that all names and values do not contain special characters.</li>
+<li>Sept 15: added <code>#\/</code> as a special character, to avoid strange-looking element tags.</li>
+<li>Sept 15: clarified <code>parse-html</code> only parses <em>one</em> root element from a string</li>
+</ul>
+<h2 id="introduction">Introduction</h2>
+<p>One of the most fundamental tasks in computer science is <em>parsing</em>: taking in some input (usually but not always in text format) and recovering meaningful data from it. In this assignment, we'll focus on <strong>parsing HTML</strong>, taking a string of HTML text and then recovering the underlying tree structure from it.</p>
+<p>Generally speaking, when you open your browser and navigate to webpage, what you see - a nice-looking website - is a result of your browser rendering an HTML file (along with many other files that we won't go into here). HTML files are simply plain text files that store the basic content of a webpage in a tree-like form. The nodes of the tree correspond to HTML <em>elements</em>, which are marked with start and end tags like <code>&lt;html&gt;</code> and <code>&lt;/html&gt;</code>, respectively. Between these two tags appear the contents of the element, which can be other elements (giving HTML its recursive tree structure) or plain text.</p>
+<p>Here's a simple example of an <a href="http://www.cs.toronto.edu/~liudavid/csc324/assignments/a1/simple.html">HTML file</a>. Try opening it in your browser!</p>
+<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;html&gt;</span>
+<span class="kw">&lt;body&gt;</span>
+    <span class="kw">&lt;h1&gt;</span>This is a heading!<span class="kw">&lt;/h1&gt;</span>
+    <span class="kw">&lt;div&gt;</span>
+        <span class="kw">&lt;p&gt;</span>This is a paragraph.<span class="kw">&lt;/p&gt;</span>
+        <span class="kw">&lt;h2&gt;</span>This is a subheading.<span class="kw">&lt;/h2&gt;</span>
+        <span class="kw">&lt;p&gt;</span>This is another paragraph.<span class="kw">&lt;/p&gt;</span>
+    <span class="kw">&lt;/div&gt;</span>
+<span class="kw">&lt;/body&gt;</span>
+<span class="kw">&lt;/html&gt;</span></code></pre>
+<p>One of the first tasks in rendering a webpage is to take the raw HTML - which is just text, remember - and get the related tree structure. This is exactly your job in this assignment!</p>
+<h2 id="parsing-strategy">Parsing strategy</h2>
+<p>Inspired by the functional programming paradigm, we'll view parsing as a <em>function</em> taking a string and returning structured data (in our case, a tree). But of course, a function which handles arbitrary HTML is surely quite complex; therefore our strategy will be to build up such a function by <em>combining</em> and <em>transforming</em> simpler functions.</p>
+<p>This is the essence of recursive descent parsing: building functions that recognize small components of data, and then larger functions that call these functions recursively, either directly or by passing them through higher-order functions. Each of our parsing functions will take a single string parameter, and return a pair <code>(list data rest)</code>, where <code>data</code> contains the data parsed from the input, and <code>rest</code> is a string containing the remaining part of the string that hasn't been parsed yet.</p>
+<pre class="sourceCode scheme"><code class="sourceCode scheme"><span class="co">; (parser-function source) -&gt; '(&lt;data&gt; &lt;rest&gt;)</span></code></pre>
+<h2 id="getting-started">Getting started</h2>
+<p>Download <a href="http://www.cs.toronto.edu/~liudavid/csc324/assignments/a1/parsing.rkt">parsing.rkt</a> and <a href="http://www.cs.toronto.edu/~liudavid/csc324/assignments/a1/parsing_test.rkt">parsing_test.rkt</a>. You are required to <em>submit unit tests</em> for each of the files you write on this assignment. We strongly recommend that for each function, you write some unit tests before implementing it!</p>
+<p>Note that you'll want to look up Racket's <a href="http://docs.racket-lang.org/reference/strings.html">string documentation</a> to see what functions you have available.</p>
+<p>We'll start with the "base case": matching a single word. This type of function will attempt to read in a word at the start of the input string. On a <em>success</em>, it returns the word, and the rest of the input; on a <em>failure</em>, it signals an error using <code>(list 'error str)</code>, where <code>str</code> is the original input. (Note: this isn't exactly the most graceful way of handling errors, but we trade this for simplicity.)</p>
+<ol style="list-style-type: decimal">
+<li>As a warm-up, write a function <code>parse-html-tag</code>, that tries to read in the word <code>&lt;html&gt;</code> at the start of its input. Check the tests for examples what what the function should do.</li>
+<li>Next, a higher-order function: write a function <code>make-text-parser</code>, which takes as input a word, and <em>returns a function</em> that tries to parse a string starting with the word. So the previous <code>parse-html-tag</code> function could be equivalently defined as <code>(define parse-html-tag (make-text-parser "&lt;html&gt;"))</code>; we're asking for a <em>generalization</em> here.</li>
+<li>Our last building block will be quite simple: recognizing character classes. Racket represents character literals using <code>#\X</code>, where <code>X</code> is actual character. For example, the string <code>"hello"</code> consists of the characters <code>#\h</code>, <code>#\e</code>, <code>#\l</code>, and <code>#\o</code>.<br>In our html language, the only special characters will be <code>#\&lt;</code>, <code>#\&gt;</code>, <code>#\=</code>, and <code>#\"</code>, <strong>AND <code>#\/</code></strong> (added Sept 15). <strong>All other</strong> characters are non-special (you may assume we're sticking to ASCII characters, though). The only <em>whitespace</em> character is <code>#\space</code>, representing the single character in <code>" "</code>. Write the two methods <code>parse-non-special-char</code> and <code>parse-plain-char</code>, which recognize any non-special character and any non-special, non-whitespace character, respectively.</li>
+</ol>
+<h2 id="parser-combinators">Parser combinators</h2>
+<p>Believe it or not, we now have all the basic ingredients we need to perform parsing. However, we still need ways of <em>combining</em> these base parsers. Recall from CSC236 the three language operations associated with regular languages/expressions:</p>
+<ul>
+<li>Union, "A|B": parse A or B</li>
+<li>Concatenation, "AB": parse A and then B</li>
+<li>Star, "A*": parse zero or more copies of A</li>
+</ul>
+<ol start="4" style="list-style-type: decimal">
+<li>In <code>parsing.rkt</code>, fill in the bodies for the functions <code>either</code>, <code>both</code>, and <code>star</code>, which implement the three language operations (see the documentation for details).</li>
+</ol>
+<p>Note that this is a really good opportunity to use <code>let</code> to bind local variables. Also, remember that you are allowed and encouraged to use helper functions (that you should document!) to make your code cleaner.</p>
+<h2 id="the-good-stuff-parsing-html">The good stuff: parsing HTML</h2>
+<p>Now that you have both the basic building blocks and some basic combinators, let's get to the actual task at hand: parsing HTML.</p>
+<h3 id="the-html-element-data-structure">The HTML Element Data Structure</h3>
+<p>We'll represent an HTML element in Racket as a <strong>list with 3 or more items</strong>, where:</p>
+<ul>
+<li>The first item is the name of the HTML element, as a string. Example: <code>"head"</code>.</li>
+<li>The second is a list of <em>attributes</em> - more on this later.</li>
+<li>The rest of the items are any children elements, or (if there are none), just a string containing the text contents. You may assume that either an element has children elements, or it just contains text, but not both.</li>
+</ul>
+<p>For example, we would represent the initial <code>simple.html</code> example would be represented in Racket as</p>
+<pre class="sourceCode scheme"><code class="sourceCode scheme">'(<span class="st">"html"</span>
+  ()
+  (<span class="st">"body"</span>
+   ()
+   (<span class="st">"h1"</span> () <span class="st">"This is a heading!"</span>)
+   (<span class="st">"div"</span>
+    ()
+    (<span class="st">"p"</span> () <span class="st">"This is a paragraph."</span>)
+    (<span class="st">"h2"</span> () <span class="st">"This is a subheading."</span>)
+    (<span class="st">"p"</span> () <span class="st">"This is another paragraph."</span>))))</code></pre>
+<h3 id="html-attributes">HTML Attributes</h3>
+<p>HTML elements can have <em>attributes</em>, which enables functionality like custom styling and dynamic behaviour (like clicking a button to submit a form). Attributes are declares <em>within</em> the opening tag of an HTML element, as follows: <code>&lt;p attr="val" attr2="val2"&gt;</code>. By the way, this is why we consider <code>#\=</code> and <code>#\"</code> to be special characters.</p>
+<p>An attribute consists of a <strong>name</strong> and a <strong>value</strong>, separated by an <code>=</code>. The <code>value</code> must be enclosed in double-quotes, but note that these are not stored in Racket (that would be quite redundant).</p>
+<p>We represent a single attribute in Racket as a list of two items, the attribute name and value. For example, the following HTML:</p>
+<pre class="sourceCode html"><code class="sourceCode html"><span class="kw">&lt;html&gt;</span>
+<span class="kw">&lt;body&gt;</span>
+    <span class="kw">&lt;p</span><span class="ot"> id=</span><span class="st">"main"</span><span class="ot"> class=</span><span class="st">"super"</span><span class="kw">&gt;</span>Hey<span class="kw">&lt;/p&gt;</span>
+<span class="kw">&lt;/body&gt;</span>
+<span class="kw">&lt;/html&gt;</span></code></pre>
+<p>has this Racket representation:</p>
+<pre class="sourceCode scheme"><code class="sourceCode scheme">'(<span class="st">"html"</span>
+  ()
+  (<span class="st">"body"</span>
+   ()
+   (<span class="st">"p"</span>
+    ((<span class="st">"id"</span> <span class="st">"main"</span>) (<span class="st">"class"</span> <span class="st">"super"</span>))
+    <span class="st">"Hey"</span>)))</code></pre>
+<h3 id="your-task">Your Task</h3>
+<ol start="5" style="list-style-type: decimal">
+<li>Your only task for this part is to write a parser <code>parse-html</code>, which takes as input a string, and tries to parse a valid HTML element at the start of the string, returning as its <code>data</code> the tree representation of the parsed HTML. See the documentation in <code>parsing.rkt</code> and the final section "Specification Details" for more information.</li>
+</ol>
+<p>This is a large task; we <strong>strongly recommend</strong> breaking this down into smaller pieces, e.g.</p>
+<ul>
+<li>Parsing only text elements</li>
+<li>Parsing "chains", i.e., elements that have only one child</li>
+<li>Parsing elements with no attributes</li>
+</ul>
+<h3 id="guidelines">Guidelines</h3>
+<p>Write helper functions! This is much too large of a task to put in just one function.</p>
+<p>Think hard about how to break up the task into smaller parts. You should use the tools you built in the first part of the assignment - we didn't make you do these for no reason! However, you might want to write other parsers, other functions that create parsers, or other parser combinators; this is strongly encouraged. The first tasks are a starting point, not the be-all and end-all of parsing tools.</p>
+<p><strong>You are required to write and submit tests for all of your functions</strong>! Get in the habit of testing early and often, to save yourself a lot of work at the end.</p>
+<h2 id="specification-details">Specification Details</h2>
+<p>Obviously, your parser will only be able to handle a rather restricted subset of valid HTML. Here are some clarifications about what you do and do not have to handle:</p>
+<ol style="list-style-type: decimal">
+<li>The only whitespace character you need to handle is the space <code>#\space</code>. We will not be testing your code on any strings containing <code>#\newline</code>, <code>#\tab</code>, etc.</li>
+<li>Whitespace appearing in text contents and attribute values should be preserved by your parser: so <code>&lt;p&gt; Hi!  &lt;/p</code> should be parsed as <code>'("p" () " Hi!  ")</code>.</li>
+<li>But remember that HTML elements can have text, or other elements, but not both. So your parser should ignore the whitespace between <code>&lt;body&gt;</code> and <code>&lt;p&gt;</code> in here: <code>&lt;body&gt;   &lt;p&gt;Heyo&lt;/p&gt;&lt;/body&gt;</code>.</li>
+<li>No element or attribute <em>name</em> can contain whitespace. So <code>&lt;bo dy&gt;</code> is invalid.</li>
+<li>You can also assume that <strong>in our tests, closing tags contain no whitespace and are always closed</strong>: <code>&lt; / p   &gt;</code> will not appear, nor will an unclosed tag like <code>&lt;/p</code>.</li>
+<li><em>In our tests</em>, element opening tags contain no whitespace if there are no attributes. However, if there are attributes, then arbitrary amounts of whitespace are allowed to separate:
+<ul>
+<li>element name from first attribute</li>
+<li>around the <code>=</code></li>
+<li>between an attribute value and the next attribute name or <code>#\&gt;</code>. For example, the following tag <em>is allowed</em>: <code>&lt;p  class  ="main"    id= "me  "   &gt;Hi&lt;/p&gt;</code>. This should be parsed as <code>'("p" (("class" "main") ("id" "me  ")) "Hi")</code>.</li>
+</ul></li>
+<li>You can also assume that all opening tags have a closing <code>#\&gt;</code>, so you do <strong>not</strong> need to handle a string like <code>"&lt;html &lt;body&gt;Hi&lt;/body&gt;&lt;/html&gt;</code>, in which the opening tag is not closed.</li>
+<li>Empty elements can be interpreted as having text contents containing the empty string. So <code>&lt;p&gt;&lt;/p&gt;</code> should be parsed as <code>'("p" () "")</code>.</li>
+<li>There are <strong>no</strong> semantic restrictions on element nesting, the element names, attribute names or values, or text contents. For example, a <code>head</code> element may appear after (or nested inside) a <code>body</code> element. The root element can be anything, not just <code>&lt;html&gt;</code>.</li>
+<li><p>Sept 15 clarification: like all other parsers we've asked you to create, you should only parse <em>one</em> root element at the beginning of the string. For example:</p>
+<pre class="sourceCode scheme"><code class="sourceCode scheme"><span class="kw">&gt;</span> (parse-html <span class="st">"&lt;hi&gt;Hello&lt;/hi&gt;&lt;bye&gt;Bye&lt;/bye&gt;"</span>)
+'((<span class="st">"hi"</span> () <span class="st">"Hello"</span>) <span class="st">"&lt;bye&gt;Bye&lt;/bye&gt;"</span>)</code></pre></li>
+</ol>
+<h2 id="submitting-the-assignment">Submitting the assignment</h2>
+<p>Once you are finished and confident in your work, follow these steps to submit your assignment on MarkUs.</p>
+<ol style="list-style-type: decimal">
+<li>Login to <a href="https://markus.cdf.toronto.edu/csc324-2014-09/">MarkUs</a>.</li>
+<li>Go to the "Assignment 1" page.</li>
+<li>If you worked in a group, form a group and <strong>make sure your partner joins</strong>. Remember that this requires the "invitee" to actually login and join the group; otherwise, that person won't receive any credit for the assignment.</li>
+<li>Submit two files: <code>parsing.rkt</code>, containing the functions you implemented for the assignment, and <code>parsing_test.rkt</code>, containing the tests your wrote.</li>
+<li>Congratulations, you're done! Eat some chocolate.</li>
+</ol>
+    </div>
+</div>
+  <footer>
+    <a href="http://web.cs.toronto.edu/"><img class="logo" src="./csfaculty.jpg"></a>
+    <h5>
+      <a href="http://www.cs.toronto.edu/~liudavid/">David Liu</a> (liudavid at cs dot toronto dot edu) <br>
+      Come find me in BA4260<br>
+      Site design by Deyu Wang (dyw999 at gmail dot com)
+    </h5>
+  </footer>
+  <!--scripts-->
+  <script src="./main.js"></script>
+
+
+<span id="buffer-extension-hover-button" style="display: none;position: absolute;z-index: 8675309;width: 100px;height: 25px;background-image: url(chrome-extension://noojglkidnpfjbincgijbaiedldjfbhh/data/shared/img/buffer-hover-icon@2x.png);background-size: 100px 25px;opacity: 0.9;cursor: pointer;"></span></body></html>
