@@ -10,14 +10,8 @@ One of the most fundamental tasks in computer science is parsing: taking in some
 
 ## Instructor:
 
-**David Liu**
+[David Liu](http://www.cs.toronto.edu/~liudavid/)  
 
 ## Links:
 
 [Assignment handout] ()
-
-## Files:
-
-* parsing.rkt  
-* parsing_test.rkt  
-
